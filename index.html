@@ -3,37 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raspberry Pi IoT Control</title>
+    <title>Message Board</title>
     <style>
-        /* Default Light Mode Styles */
-        body {
+        /* General Styles */
+        body, html {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             text-align: center;
             margin: 0;
             padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
             transition: background 0.3s, color 0.3s;
         }
 
         .container {
             width: 50%;
-            margin: auto;
             background: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-            margin-top: 30px;
             transition: background 0.3s, color 0.3s;
+            margin-top: 30px;
+            margin-bottom: 50px;
         }
 
         h1 {
             color: #333;
-        }
-
-        h2 {
-            color: #555;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 5px;
         }
 
         button {
@@ -88,10 +87,6 @@
             box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
         }
 
-        h1.dark-mode, h2.dark-mode {
-            color: #f4f4f4;
-        }
-
         li.dark-mode {
             background: #333;
             color: #f4f4f4;
@@ -108,32 +103,40 @@
     </style>
 
     <script>
-        async function toggleLED(state) {
-            await fetch(`/led/${state}`);
-        }
+        function saveMessage() {
+            let text = document.getElementById("inputText").value;
+            if (text.trim() === "") return;
 
-        async function fetchLCDText() {
-            let response = await fetch('/lcd');
-            let data = await response.json();
+            let messages = JSON.parse(localStorage.getItem("messages")) || [];
 
-            let historyHtml = "";
-            for (let entry of data.lcd_text) {
-                let [message, ip, timestamp] = entry;
-                historyHtml += `<li class="${isDarkMode() ? 'dark-mode' : ''}"><strong>${timestamp} - ${ip}:</strong> ${message}</li>`;
+            // Add new message with timestamp
+            let timestamp = new Date().toLocaleString();
+            messages.push({ text, timestamp });
+
+            // Keep only the last 10 messages
+            if (messages.length > 10) {
+                messages.shift();
             }
-            document.getElementById("lcdHistory").innerHTML = historyHtml;
+
+            localStorage.setItem("messages", JSON.stringify(messages));
+            document.getElementById("inputText").value = "";
+            displayMessages();
         }
 
-        async function updateLCD() {
-            let text = document.getElementById("inputText").value.replace(" ", "_");
-            await fetch(`/lcd/update/${text}`);
-            fetchLCDText(); // Refresh history after updating
+        function displayMessages() {
+            let messages = JSON.parse(localStorage.getItem("messages")) || [];
+            let historyHtml = "";
+
+            messages.forEach(entry => {
+                historyHtml += `<li class="${isDarkMode() ? 'dark-mode' : ''}"><strong>${entry.timestamp}:</strong> ${entry.text}</li>`;
+            });
+
+            document.getElementById("messageHistory").innerHTML = historyHtml;
         }
 
         function toggleDarkMode() {
             document.body.classList.toggle("dark-mode");
             document.querySelector(".container").classList.toggle("dark-mode");
-            document.querySelectorAll("h1, h2").forEach(el => el.classList.toggle("dark-mode"));
             document.querySelectorAll("li").forEach(el => el.classList.toggle("dark-mode"));
             document.querySelectorAll("button").forEach(el => el.classList.toggle("dark-mode"));
 
@@ -145,33 +148,27 @@
             return document.body.classList.contains("dark-mode");
         }
 
-        // Load dark mode preference
-        window.onload = function() {
+        window.onload = function () {
             if (localStorage.getItem("darkMode") === "enabled") {
                 toggleDarkMode();
             }
+            displayMessages();
         }
     </script>
 </head>
 <body>
     <div class="container">
-        <h1>Raspberry Pi IoT Control</h1>
+        <h1>Message Board</h1>
         <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
 
-        <h2>LED Control</h2>
-        <button onclick="toggleLED('on')">Turn LED ON</button>
-        <button onclick="toggleLED('off')">Turn LED OFF</button>
+        <h2>Leave a Message</h2>
+        <input type="text" id="inputText" placeholder="Enter your message">
+        <button onclick="saveMessage()">Submit</button>
 
-        <h2>LCD Display</h2>
-        <p><strong>Message History:</strong></p>
-        <ul id="lcdHistory">
+        <h2>Message History</h2>
+        <ul id="messageHistory">
             <li>Loading...</li>
         </ul>
-        <button onclick="fetchLCDText()">Refresh History</button>
-
-        <h3>Update LCD</h3>
-        <input type="text" id="inputText" placeholder="Enter new text">
-        <button onclick="updateLCD()">Update LCD</button>
     </div>
 </body>
 </html>
