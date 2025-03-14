@@ -1,1 +1,119 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspberry Pi IoT Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 50%;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        input {
+            padding: 8px;
+            width: 80%;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #e9ecef;
+            margin: 5px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+    <script>
+        async function toggleLED(state) {
+            await fetch(`/led/${state}`);
+        }
+
+        async function fetchLCDText() {
+            let response = await fetch('/lcd');
+            let data = await response.json();
+
+            let historyHtml = "";
+            for (let entry of data.lcd_text) {
+                let [message, ip, timestamp] = entry;
+                historyHtml += `<li><strong>${timestamp} - ${ip}:</strong> ${message}</li>`;
+            }
+            document.getElementById("lcdHistory").innerHTML = historyHtml;
+        }
+
+        async function updateLCD() {
+            let text = document.getElementById("inputText").value.replace(" ", "_");
+            await fetch(`/lcd/update/${text}`);
+            fetchLCDText(); // Refresh history after updating
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Raspberry Pi IoT Control</h1>
+
+        <h2>LED Control</h2>
+        <button onclick="toggleLED('on')">Turn LED ON</button>
+        <button onclick="toggleLED('off')">Turn LED OFF</button>
+
+        <h2>LCD Display</h2>
+        <p><strong>Message History:</strong></p>
+        <ul id="lcdHistory">
+            <li>Loading...</li>
+        </ul>
+        <button onclick="fetchLCDText()">Refresh History</button>
+
+        <h3>Update LCD</h3>
+        <input type="text" id="inputText" placeholder="Enter new text">
+        <button onclick="updateLCD()">Update LCD</button>
+    </div>
+</body>
+</html>
